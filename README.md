@@ -1,87 +1,62 @@
-# TOURNAMENT
+Tournament
+===================
 
-Необходимо для проведения различных турниров на блокчейне. Создается турнир(доступ по NFT, как опция) с определенными условиями (количество участников, цена входа, распределение средств между победителями). Каждый участник вносит определенную ранее сумму, после окончания турнира, все собранные средства распределяются согласно условиям турнира. Так же любой человек может внести FT или NFT в призовой фонд турнира.
+This repository includes an implementation of a tournament contract.
 
-```rust
-pub trait TournamentFactoryCore {
-  // Создание нового турнира
-  fn tournament_create(
-    &mut self,
-    // id турнира
-    tournament_id: TournamentId,
-    // количество участников
-    players_number: u8,
-    // цена входа (может ее не быть)
-    price: Option<U128>,
-    // название турнира
-    name: String,
-    // превью турнира
-    media: Option<String>,
-    // описание турнира
-    summary: Option<String>,
-  );
+Introduction
+=============
 
-  // получить информацию о турнире
-  fn tournament(&self,
-    // id турнира
-    tournament_id: TournamentId,
-    // создатель турнира
-    owner_id: AccountId,
-  ) -> JsonTournament;
+Necessary for various tournaments on blockchain. A tournament is created (access via NFT as an option) with certain conditions (number of participants, entry price, distribution of funds between winners). Each participant contributes a predetermined amount of money, after the end of the tournament, all collected funds are distributed according to the terms of the tournament. Also anyone can contribute FT or NFT to the tournament prize fund.
 
-  // запустить турнир
-  fn tournament_start(&mut self, tournament_id: TournamentId, owner_id: AccountId);
+Prerequisites
+=============
 
-  // завершить турнир
-  fn tournament_end(&mut self, tournament_id: TournamentId, owner_id: AccountId);
+  * Make sure Rust is installed per the prerequisites in [`near-sdk-rs`](https://github.com/near/near-sdk-rs).
+  * Make sure [near-cli](https://github.com/near/near-cli) is installed.
 
-  // присмотр призов за каждое место в турнире (может быть nft, ft или near)
-  fn tournament_prizes(&self, tournament_id: TournamentId, owner_id: AccountId) -> HashMap<WinnerPlace, Vec<RewardPrize>>;
+Explore this contract
+=====================
 
-  // присоедениться к турниру
-  fn tournament_join(&mut self, tournament_id: TournamentId, owner_id: AccountId);
+The source for this contract is in `/src/lib.rs`.
 
-  // добавить приз в турнире на определенное место
-  fn tournament_add_prize(&mut self, tournament_id: TournamentId, owner_id: AccountId, place_number: u8);
+Building this contract
+======================
+Run the following, and we'll build our rust project up via cargo. This will generate our WASM binaries into our `res/` directory. This is the smart contract we'll be deploying onto the NEAR blockchain later.
+```bash
+sh ./scripts/build.sh
+```
 
-  // узнать сколько свободных мест в турнире
-  fn tournament_free_places(&self, tournament_id: TournamentId, owner_id: AccountId) -> Option<U64>;
+Using this contract
+===================
 
-  // указать какое место занял один из участников а так же передать ему призы за место
-  fn tournament_execute_reward(&mut self, tournament_id: TournamentId, owner_id: AccountId, winner_place: u8, account_id: AccountId);
+### Quickest deploy
 
-  // узнать находится ли пользователь в турнире
-  fn tournament_member(&self, tournament_id: TournamentId, owner_id: AccountId, account_id: AccountId) -> bool;
-}
+You can build and deploy this smart contract to a development account. [Dev Accounts](https://docs.near.org/docs/concepts/account#dev-accounts) are auto-generated accounts to assist in developing and testing smart contracts. Please see the [Standard deploy](#standard-deploy) section for creating a more personalized account to deploy to.
 
-pub trait TournamentFactoryEnumeration{
-  // список турниров
-  fn tournaments(&self, owner_id: AccountId, from_index: Option<U128>, limit: Option<u64>) -> Vec<JsonTournament>;
-  // список игроков в турнире
-  fn tournament_players(&self, tournament_id: TournamentId, owner_id: AccountId) -> Vec<AccountId>;
-}
+```bash
+sh ./scripts/dev-deploy.sh
+```
 
-pub trait TournamentFactoryNftAccess {
-  // список nft токенов являющихся доступов к турниру
-  fn tournament_nft_access(&self, tournament_id: TournamentId, owner_id: AccountId) -> Vec<TokenId>;
+Behind the scenes, this is creating an account and deploying a contract to it. On the console, notice a message like:
 
-  // добавить nft токен в список доступов
-  fn tournament_add_nft_access(&mut self, tournament_id: TournamentId, owner_id: AccountId, token_ids: Vec<TokenId>);
-}
+>Done deploying to dev-1234567890123
 
-trait FungibleTokenReceiver {
-    // перевод ft токена в призовой пулл
-    fn ft_on_transfer(&mut self, sender_id: AccountId, amount: U128, msg: String) -> PromiseOrValue<U128>;
-}
+In this instance, the account is `dev-1234567890123`. A file has been created containing a key pair to
+the account, located at `neardev/dev-account`. To make the next few steps easier, we're going to set an
+environment variable containing this development account id and use that when copy/pasting commands.
+Run this command to set the environment variable:
 
-trait NonFungibleTokenApprovalsReceiver {
-   // перевод nft токена в призовой пулл, либо использование как nft доступ для входа в турнир
-  fn nft_on_transfer(
-    &mut self,
-    sender_id: AccountId,
-    previous_owner_id: AccountId,
-    token_id: TokenId,
-    msg: String,
-  ) -> PromiseOrValue<bool>;
-}
+```bash
+source ./scripts/neardev/dev-account.env
+```
+
+You can tell if the environment variable is set correctly if your command line prints the account name after this command:
+```bash
+echo $CONTRACT_NAME
+```
+
+The next command will initialize the contract using the `new` method:
+
+```bash
+near call $CONTRACT_NAME new_default_meta '{"owner_id": "'$CONTRACT_NAME'"}' --accountId $CONTRACT_NAME
 ```
